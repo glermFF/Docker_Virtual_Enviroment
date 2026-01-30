@@ -8,6 +8,64 @@ Toda essa ideia foi um lapso que tive na mente e decidi aplicar e entender se fu
 
 O que pensei: montar um sistema de containers para análise de malwares. A ideia inicial é em analisar documentos e verificar se há um potencial malware que é executado ao abrir o arquivo. Usarei uma imagem do Kali linux (pode ser o container de uma distro de sua escolha) que estará conectado a uma rede docker e por meio do próprio terminal do host conectar ao container por meio do SSH. Nessa conexão os arquivos serão e combinado com um script automatizado será retornado um log e o arquivo caso ele não tenha nada suspeito ou retornando apenas o log e mantendo o arquivo em quarentena dentro do container, sendo opcional a decisão de manter, destruir ou tentar reparar o arquivo.
 
+## Configurações da Rede Docker
+
+Gerar Imagem:
+```bash
+sudo docker build -t nome_da_imagem .
+```
+
+Criar rede docker:
+```bash
+sudo docker network create network-name
+```
+## Criação e Execução do Container
+
+Criar e inicia container:
+```bash
+sudo docker run -it --name container-name <image> --network network-name
+```
+
+Iniciar container:
+```bash
+sudo docker start container-name
+```
+
+Acessa o container por CLI:
+```bash
+sudo docker exec -it container-name /bin/bash
+```
+
+## Outros comandos
+
+**Alternativa para rodar no modo CLI**:
+
+```bash
+sudo docker exec -it container-name sh
+```
+
+**Criar um container referênciada a uma porta do host**:
+
+```bash
+sudo docker run -it -p PORT:PORT --name container-name
+```
+
+**Se comandos de rede(ip, ping) não funcionarem**:
+
+```bash
+apt install -y iproute2 iputils-ping net-tools openssh-client
+```
+
+**Executar dentro do Container**:
+
+```bash
+hostname -I #Identificar IP do Container
+```
+
+```bash
+cat /etc/hosts #Verificar conexões do Container
+```
+
 ## Hipóteses
 
 Virtualizar dessa forma pode não ser a mais eficiente por conta do consumo de RAM do container que imagino que será alto. Executando os devidos testes sobre seu consumo e custo de processamentos terei de fato uma conclusão sobre. Tudo isso é experimental podendo levar a ideias futuras.
