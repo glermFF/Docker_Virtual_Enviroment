@@ -10,11 +10,15 @@ O que pensei: montar um sistema isolado entre containers para análise de malwar
 
 A forma que pensei aparentemente apresenta camadas de isolamento para evitar com que o malware saia do contaienr afetando o host, mas deixarei outra forma que decidi testar que é executando o container localmente sem adicionar há uma rede docker. Mais direta e pode funcionar sem muita dor de cabeça em ambiente Windows ou MacOS -- os testes estão sendo feitos em Distro Linux. 
 
-## Esquema 1 - Container Local
+## Ferramentas
 
-## Esquema 2 - Container por Rede Docker
+As ferramentas escolhidas para a efetuar as análises automatizadas foram o binwalk e clamav combinadas em um pipeline feito em shellscript. Cada ferramenta é focada em uma tarefa diferente. 
 
-## Configuração seguindo o Esquema 1
+A verificação dos arquivos começa pelo ClamAV comparando com assinaturas de malwares existentes em sua base de dados e em caso positivo é marcado no arquivo de saída e enviado para o diretório de quarentena dentro do container. 
+
+A próxima etapa, com o Binwalk, é uma forma de analisar de forma mais profunda e detalhada o arquivo, evitando um possível falso positivo da etapa anterior. Por ser um ferramenta usada em engenharia reversa, ele consegue ver a fundo os binários presentes no arquivo de forma precisa.
+
+## Container Local
 
 Crie um diretório no seu computador:
 ```bash
@@ -30,10 +34,13 @@ sudo docker run --rm -it \
 -v ~/amostras:/amostras:ro \
 <dockerfile_image>
 ```
-
-## Configuração seguindo o Esquema 2
-
+## Container em Rede Isolada
 ### Configurações da Rede Docker
+
+Gerar Imagem:
+```bash
+sudo docker build -t nome_da_imagem .
+```
 
 Criar rede docker:
 ```bash
@@ -41,17 +48,13 @@ sudo docker network create network-name
 ```
 ### Criação e Execução do Container
 
-Gerar Imagem pelo dockerfile do repositório:
-```bash
-sudo docker build -t nome_da_imagem .
-```
-
 Criar e inicia container:
 ```bash
-sudo docker run -it --name container-name <image> --network network-name
+sudo docker run -it \
+--name container-name \
+--network network-name \
+<image> 
 ```
-
-### Acessar novamente o container
 
 Iniciar container:
 ```bash
@@ -71,27 +74,37 @@ sudo docker exec -it container-name /bin/bash
 sudo docker exec -it container-name sh
 ```
 
-**Criar um container referênciada a uma porta do host**:
+**Criação do container com imagem do dockerfile**:
+```bash
+# Não precisa usar o comando --network para conectar a bridge padrão
+sudo docker run -it container-name <dockerfile_image>
+```
 
+**Criar um container referênciada a uma porta do host**:
 ```bash
 sudo docker run -it -p PORT:PORT --name container-name
 ```
 
+**Se comandos de rede(ip, ping) não funcionarem**:
+```bash
+apt install -y iproute2 iputils-ping net-tools openssh-client
+```
+
 **Executar dentro do Container**:
-
-Identificar IP do Container:
 ```bash
-hostname -I
+hostname -I #Identificar IP do Container
 ```
 
-Verificar conexões do Container:
 ```bash
-cat /etc/hosts
+cat /etc/hosts #Verificar conexões do Container
 ```
 
+```bash
+scp <fonte> <destino> #Copia dos arquivos do host para o container
 ## Hipóteses
+```
 
-Virtualizar dessa forma pode não ser a mais eficiente por conta do consumo de RAM do container que imagino que será alto. Executando os devidos testes sobre seu consumo e custo de processamentos terei de fato uma conclusão sobre. Tudo isso é experimental podendo levar a ideias futuras.
+Essa forma pode não ser a mais eficiente por conta do consumo de RAM do container, que imagino que será alto. Executando os devidos testes sobre seu consumo e custo de processamentos terei de fato uma conclusão sobre. Tudo isso é experimental podendo levar a ideias e futuras melhorias.
 
 Até o momento não foi testado em outros sistemas operacionais, então se você utilizar sistmas Windows ou até sistemas não baseados em Debian pode ser que as configurações não funcionem corretamente ao seguir o passo a passo
 
@@ -101,3 +114,6 @@ Até o momento não foi testado em outros sistemas operacionais, então se você
 - https://www.tecmint.com/install-openssh-server-in-linux/
 - https://www.dropvps.com/blog/how-docker-uses-ports-for-container-networking/?utm_source=chatgpt.com
 - https://christian-schou.com/blog/ssh-from-docker-container-to-host/?utm_source=chatgpt.com
+- https://www.amtso.org/security-features-check/
+- https://www.kali.org/tools/clamav/
+- https://www.kali.org/tools/binwalk/
