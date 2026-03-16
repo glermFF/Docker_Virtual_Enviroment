@@ -2,21 +2,32 @@
 
 ## Sobre
 
-Toda essa ideia foi um lapso que pensamento que surgiu e decidi aplicar e entender se funciona. Algo semelhante já passou em minha mente com relação a ambiente de containers para monitoramento e análise de comportamento dos hosts, mas nunca saiu do papel e ficou na hipótese. A parte parecida entre essas ideias é a questão de conexões entre containers na rede e com a máquina host, sendo uma possível fagulha para continuar o outro projeto após a conclusão desse.
+Toda essa ideia foi um lapso de pensamento que surgiu e decidi aplicar e entender se funciona. Algo semelhante já passou em minha mente com relação a ambiente de containers para monitoramento e análise de comportamento dos hosts, mas nunca saiu do papel e ficou na hipótese. A parte parecida entre essas ideias é a questão de conexões entre containers na rede e com a máquina host, sendo uma possível fagulha para continuar o outro projeto após a conclusão desse.
 
 ## Ideia Inicial
 
-O que pensei: montar um sistema isolado entre containers para análise de malwares. A ideia inicial é em analisar documentos e verificar se há um potencial malware que é executado ao abrir o arquivo. Usarei uma imagem do Kali linux (pode ser o container de uma distro de sua escolha) que estará conectado a uma rede docker e por meio do próprio terminal do host conectar ao container por meio do SSH. Nessa conexão os arquivos serão e combinado com um script automatizado será retornado um log e o arquivo caso ele não tenha nada suspeito ou retornando apenas o log e mantendo o arquivo em quarentena dentro do container, sendo opcional a decisão de manter, destruir ou tentar reparar o arquivo.
+**Ideia:** Montar um sistema isolado entre containers para análise de malwares. A forma pensada usa camadas de isolamento para evitar com que o malware afete o host, mas deixarei outra forma que decidi testar que é executando o container localmente sem adicionar há uma rede docker.
 
-A forma que pensei aparentemente apresenta camadas de isolamento para evitar com que o malware saia do contaienr afetando o host, mas deixarei outra forma que decidi testar que é executando o container localmente sem adicionar há uma rede docker. Mais direta e pode funcionar sem muita dor de cabeça em ambiente Windows ou MacOS -- os testes estão sendo feitos em Distro Linux. 
+**Objetivo:** A ideia inicial é em analisar documentos e verificar se há um potencial malware que é executado ao abrir o arquivo.
+
+**Container:**
+- Kali;
+- Pipeline em Shell;
+- Diretório com Logs das análises;
+- Host local: Compartilhar Diretório;
+- Origem de outros Hosts: Conexão SSH;
 
 ## Ferramentas
 
 As ferramentas escolhidas para a efetuar as análises automatizadas foram o binwalk e clamav combinadas em um pipeline feito em shellscript. Cada ferramenta é focada em uma tarefa diferente. 
 
-A verificação dos arquivos começa pelo ClamAV comparando com assinaturas de malwares existentes em sua base de dados e em caso positivo é marcado no arquivo de saída e enviado para o diretório de quarentena dentro do container. 
+### **ClamAV:**
 
-A próxima etapa, com o Binwalk, é uma forma de analisar de forma mais profunda e detalhada o arquivo, evitando um possível falso positivo da etapa anterior. Por ser um ferramenta usada em engenharia reversa, ele consegue ver a fundo os binários presentes no arquivo de forma precisa.
+A primeira etapa é por meio da verificação dos arquivos comparando com assinaturas de malwares existentes na base de dados do ClamAV e em caso positivo é marcado no arquivo de saída e enviado para o diretório de quarentena dentro do container.
+
+### **BinWalk:**
+
+A segunda etapa analisa de forma mais profunda o arquivo, evitando um possível falso positivo da etapa anterior. Por ser um ferramenta usada em engenharia reversa, ele consegue ver a fundo os binários presentes no arquivo de forma precisa.
 
 ## Container Local
 
@@ -103,6 +114,7 @@ cat /etc/hosts #Verificar conexões do Container
 scp <fonte> <destino> #Copia dos arquivos do host para o container
 ## Hipóteses
 ```
+## Observações
 
 Essa forma pode não ser a mais eficiente por conta do consumo de RAM do container, que imagino que será alto. Executando os devidos testes sobre seu consumo e custo de processamentos terei de fato uma conclusão sobre. Tudo isso é experimental podendo levar a ideias e futuras melhorias.
 
