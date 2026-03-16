@@ -29,7 +29,7 @@ A primeira etapa é por meio da verificação dos arquivos comparando com assina
 
 A segunda etapa analisa de forma mais profunda o arquivo, evitando um possível falso positivo da etapa anterior. Por ser um ferramenta usada em engenharia reversa, ele consegue ver a fundo os binários presentes no arquivo de forma precisa.
 
-## Container Local
+## Container Local (malware/dockerfile)
 
 Crie um diretório no seu computador:
 ```bash
@@ -45,7 +45,7 @@ sudo docker run --rm -it \
 -v ~/amostras:/amostras:ro \
 <dockerfile_image>
 ```
-## Container em Rede Isolada
+## Container em Rede Isolada (malware/docker-compose.yml)
 ### Configurações da Rede Docker
 
 Gerar Imagem:
