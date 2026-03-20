@@ -31,6 +31,8 @@ A segunda etapa analisa de forma mais profunda o arquivo, evitando um possível 
 
 ## Container Local (malware/dockerfile)
 
+### Diagrama
+
 Crie um diretório no seu computador:
 ```bash
 mkdir -p ~/amostras
@@ -46,6 +48,12 @@ sudo docker run --rm -it \
 <dockerfile_image>
 ```
 ## Container em Rede Isolada (malware/docker-compose.yml)
+
+### Diagrama
+
+<img src="./diagramas/diagrama projeto rede docker.png">
+
+
 ### Configurações da Rede Docker
 
 Gerar Imagem:
