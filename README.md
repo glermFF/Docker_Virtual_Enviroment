@@ -1,132 +1,24 @@
-# Ambiente Virtual Docker - Análise de Malware
+# Ambiente Virtual Docker
 
 ## Sobre
 
-Toda essa ideia foi um lapso de pensamento que surgiu e decidi aplicar e entender se funciona. Algo semelhante já passou em minha mente com relação a ambiente de containers para monitoramento e análise de comportamento dos hosts, mas nunca saiu do papel e ficou na hipótese. A parte parecida entre essas ideias é a questão de conexões entre containers na rede e com a máquina host, sendo uma possível fagulha para continuar o outro projeto após a conclusão desse.
+O repositório tem como intuito disponibilizar ferramentas usando como cerne containers que possam ser executados em qualquer computador sem dificuldades. Cada container possui diferentes funcionalidades, podendo ser integrados em sistemas já existentes de modo a facilitar otimização e melhoria sem perder tempo com configurações dos containers. Parte dos ambientes do repositório são experimentos, então leia o documento ``Instructions.md`` antes de instalar e reclamar que não funciona.
 
-## Ideia Inicial
+## Ambientes
 
-**Ideia:** Montar um sistema isolado entre containers para análise de malwares. A forma pensada usa camadas de isolamento para evitar com que o malware afete o host, mas deixarei outra forma que decidi testar que é executando o container localmente sem adicionar há uma rede docker.
+| Ambiente | Local | Objetivo | Serviços | Persistência de dados | Exposição de portas | Isolamento e segurança | Diferença principal |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Auditoria | `auditoria/docker-compose.yml` | Coleta, indexação e visualização de dados com Elastic Stack | Elasticsearch + Kibana | Volume nomeado `esdata1` em `/usr/share/elasticsearch/data` | `9200` (Elasticsearch) e `5601` (Kibana) expostas no host | Rede `bridge` padrão (`esnet`) para comunicação entre serviços | Ambiente voltado para observabilidade e análise interativa, com interface web acessível no host |
+| Malware | `malware/docker-compose.yml` | Análise de amostras em container isolado | `malware-analyzer` (imagem construída localmente) | Bind mounts: `${HOME}/amostras` (entrada, somente leitura) e `./resultados` (saída, leitura/escrita) | Não expõe portas para o host | `read_only: true`, `cap_drop: ALL`, `no-new-privileges`, rede `internal: true` | Ambiente voltado para execução mais restrita, sem interface pública, focado em segurança operacional |
 
-**Objetivo:** A ideia inicial é em analisar documentos e verificar se há um potencial malware que é executado ao abrir o arquivo.
+### Diferença entre os ambientes
 
-**Container:**
-- Kali;
-- Pipeline em Shell;
-- Diretório com Logs das análises;
-- Host local: Compartilhar Diretório;
-- Origem de outros Hosts: Conexão SSH;
-
-## Ferramentas
-
-As ferramentas escolhidas para a efetuar as análises automatizadas foram o binwalk e clamav combinadas em um pipeline feito em shellscript. Cada ferramenta é focada em uma tarefa diferente. 
-
-### **ClamAV:**
-
-A primeira etapa é por meio da verificação dos arquivos comparando com assinaturas de malwares existentes na base de dados do ClamAV e em caso positivo é marcado no arquivo de saída e enviado para o diretório de quarentena dentro do container.
-
-### **BinWalk:**
-
-A segunda etapa analisa de forma mais profunda o arquivo, evitando um possível falso positivo da etapa anterior. Por ser um ferramenta usada em engenharia reversa, ele consegue ver a fundo os binários presentes no arquivo de forma precisa.
-
-## Container Local (malware/dockerfile)
-
-### Diagrama
-
-Crie um diretório no seu computador:
-```bash
-mkdir -p ~/amostras
-```
-
-Execução do container:
-```bash
-sudo docker run --rm -it \ 
---name container-name \
---network none \
---read-only \
--v ~/amostras:/amostras:ro \
-<dockerfile_image>
-```
-## Container em Rede Isolada (malware/docker-compose.yml)
-
-### Diagrama
-
-<img src="./diagramas/diagrama projeto rede docker.png">
+- O ambiente de Auditoria prioriza acesso e visualização de dados no navegador, por isso publica portas e usa dois serviços integrados.
+- O ambiente de Malware prioriza contenção e mínimo privilégio, sem portas expostas e com sistema de arquivos do container em modo somente leitura.
+- A persistência na Auditoria usa volume nomeado do Docker, enquanto no Malware usa pastas do host para entrada e saída dos arquivos de análise.
 
 
-### Configurações da Rede Docker
 
-Gerar Imagem:
-```bash
-sudo docker build -t nome_da_imagem .
-```
-
-Criar rede docker:
-```bash
-sudo docker network create network-name
-```
-### Criação e Execução do Container
-
-Criar e inicia container:
-```bash
-sudo docker run -it \
---name container-name \
---network network-name \
-<image> 
-```
-
-Iniciar container:
-```bash
-sudo docker start container-name
-```
-
-Acessa o container por CLI:
-```bash
-sudo docker exec -it container-name /bin/bash
-```
-
-## Outros comandos
-
-**Alternativa para rodar no modo CLI**:
-
-```bash
-sudo docker exec -it container-name sh
-```
-
-**Criação do container com imagem do dockerfile**:
-```bash
-# Não precisa usar o comando --network para conectar a bridge padrão
-sudo docker run -it container-name <dockerfile_image>
-```
-
-**Criar um container referênciada a uma porta do host**:
-```bash
-sudo docker run -it -p PORT:PORT --name container-name
-```
-
-**Se comandos de rede(ip, ping) não funcionarem**:
-```bash
-apt install -y iproute2 iputils-ping net-tools openssh-client
-```
-
-**Executar dentro do Container**:
-```bash
-hostname -I #Identificar IP do Container
-```
-
-```bash
-cat /etc/hosts #Verificar conexões do Container
-```
-
-```bash
-scp <fonte> <destino> #Copia dos arquivos do host para o container
-## Hipóteses
-```
-## Observações
-
-Essa forma pode não ser a mais eficiente por conta do consumo de RAM do container, que imagino que será alto. Executando os devidos testes sobre seu consumo e custo de processamentos terei de fato uma conclusão sobre. Tudo isso é experimental podendo levar a ideias e futuras melhorias.
-
-Até o momento não foi testado em outros sistemas operacionais, então se você utilizar sistmas Windows ou até sistemas não baseados em Debian pode ser que as configurações não funcionem corretamente ao seguir o passo a passo
 
 ## Referências
 
