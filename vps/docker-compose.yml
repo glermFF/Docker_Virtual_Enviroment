@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  dvwa-db:
+    image: mariadb:10.11
+    container_name: dvwa-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: dvwa
+      MYSQL_USER: dvwa
+      MYSQL_PASSWORD: dvwa
+    command: --skip-name-resolve --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - dvwa_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+    networks:
+      - vps-net
+    profiles: ["vps", "vulnerable"]
+
+  vps-target:
+    build:
+      context: .
+      dockerfile: server_machine.dockerfile
+    container_name: vps-target
+    restart: unless-stopped
+    depends_on:
+      dvwa-db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:80"
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    networks:
+      - vps-net
+    profiles: ["vps", "vulnerable"]
+
+networks:
+  vps-net:
+    driver: bridge
+
+volumes:
+  dvwa_db_data:

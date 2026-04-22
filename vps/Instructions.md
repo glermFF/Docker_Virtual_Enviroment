@@ -1,75 +1,65 @@
-# VPS (Experimento)
+# VPS (Laboratorio Vulneravel Opcional)
 
-Este ambiente está em andamento e serve como base para simular cenários de comunicação entre uma máquina host e uma máquina guest usando containers Docker.
+Este modulo implementa um laboratorio de pentest web para uso local e autorizado.
+O alvo padrao e um servidor Apache com DVWA (Damn Vulnerable Web Application).
 
-## Status Atual
+## Objetivo
 
-**Estado:** Em desenvolvimento.
+- Permitir simulacoes de pentest em ambiente controlado.
+- Manter uso modular: o VPS pode rodar sozinho, sem depender dos modulos de malware e auditoria.
+- Preservar seguranca por padrao com exposicao apenas em localhost.
 
-Até o momento, a pasta `./vps` contém dois Dockerfiles com imagem base Ubuntu e utilitários de rede instalados para testes de conectividade e troubleshooting.
+## Componentes
 
-Arquivos existentes:
-- `host_machine.dockerfile`
-- `guest_machine.dockerfile`
+- `server_machine.dockerfile`: servidor alvo vulneravel (Apache + DVWA).
+- `docker-compose.yml`: orquestracao com banco MariaDB e alvo DVWA.
 
-## Ideia Inicial
+## Como Executar
 
-**Ideia:** Montar um laboratório de rede simples para validar comportamento de comunicação entre dois ambientes isolados (host e guest), simulando um cenário próximo de uma VPS com testes operacionais.
-
-**Objetivo:** Fornecer uma base para experimentar conectividade, diagnóstico de rede e transferência de dados entre containers antes da definição final da arquitetura.
-
-## Ferramentas Instaladas nas Imagens
-
-As duas imagens atualmente incluem:
-- `curl`
-- `net-tools`
-- `iputils-ping`
-- `netcat-traditional`
-
-Essas ferramentas permitem validar DNS, IP, portas abertas, rotas e conexão entre serviços.
-
-## Funcionamento Previsto (em construção)
-
-Fluxo pretendido para o ambiente:
-
-1. Construir a imagem da máquina host.
-2. Construir a imagem da máquina guest.
-3. Iniciar os containers em uma rede Docker definida para testes.
-4. Validar comunicação usando ping, nc e curl.
-5. Ajustar regras de acesso e serviços conforme a evolução do projeto.
-
-## Execução Básica (prévia)
-
-Build da imagem host:
+No diretorio `vps`:
 
 ```bash
-sudo docker build -t vps-host -f host_machine.dockerfile .
+docker compose --profile vps up -d --build
 ```
 
-Build da imagem guest:
+Servicos iniciados:
+
+- `dvwa-db`: banco MariaDB para a aplicacao.
+- `vps-target`: servidor Apache com DVWA.
+
+## Acesso ao Alvo
+
+- URL: `http://127.0.0.1:8080`
+- Exposicao: somente localhost (nao publica em `0.0.0.0`).
+
+Primeiro acesso ao DVWA:
+
+1. Abrir `http://127.0.0.1:8080/setup.php`.
+2. Clicar em **Create / Reset Database**.
+3. Fazer login em `http://127.0.0.1:8080/login.php`.
+4. Credenciais padrao: `admin` / `password`.
+
+## Testes no Alvo
+
+O alvo pode ser testado a partir do host local em `http://127.0.0.1:8080`.
+No futuro, os fluxos ofensivos e ferramentas de teste serao movidos para um modulo dedicado chamado `pentesting`.
+
+## Encerrar Ambiente
 
 ```bash
-sudo docker build -t vps-guest -f guest_machine.dockerfile .
+docker compose --profile vps down
 ```
 
-Execução de teste (modo interativo):
+Para remover tambem o volume do banco:
 
 ```bash
-sudo docker run --rm -it --name vps-host-test vps-host bash
+docker compose --profile vps down -v
 ```
 
-```bash
-sudo docker run --rm -it --name vps-guest-test vps-guest bash
-```
+## Seguranca e Limites
 
-## Próximos Passos
-
-- Definir orquestração com `docker-compose.yml` para subir host e guest juntos.
-- Definir rede e política de comunicação entre os containers.
-- Adicionar serviços reais para teste de acesso remoto (ex.: SSH ou HTTP interno).
-- Documentar fluxo completo de uso quando o ambiente estiver estabilizado.
-
-## Observações
-
-- Esta documentação é uma prévia e pode mudar conforme o ambiente evoluir.
-- Como ainda não há compose para a pasta `vps`, os comandos acima são focados em build e teste inicial das imagens.
+- Use apenas em laboratorio local e autorizado.
+- Nao exponha esta stack em rede publica.
+- O modulo foi desenhado para aprendizado e simulacao, nao para producao.
+- Caso queira integrar com auditoria, faca de forma opcional e sem remover o isolamento padrao.
+- A remocao da maquina guest deste modulo foi intencional para separar responsabilidades com o futuro modulo `pentesting`.
