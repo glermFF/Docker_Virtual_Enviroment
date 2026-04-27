@@ -39,11 +39,15 @@ services:
       - /tmp
     networks:
       - vps-net
+      - lab-net
     profiles: ["vps", "vulnerable"]
 
 networks:
   vps-net:
     driver: bridge
+  lab-net:
+    driver: bridge
+    external: false
 
 volumes:
   dvwa_db_data:

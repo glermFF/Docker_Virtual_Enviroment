@@ -1,4 +1,4 @@
-version: '2.2'
+version: '3.9'
 
 services:
   elasticsearch:
@@ -21,14 +21,27 @@ services:
       - esdata1:/usr/share/elasticsearch/data
     networks:
       - esnet
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
 
   kibana:
     image: docker.elastic.co/kibana/kibana:7.5.2
     container_name: kibana-system
     depends_on:
-      - elasticsearch
+      elasticsearch:
+        condition: service_healthy
     ports:
       - "5601:5601"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5601/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     environment:
       ELASTICSEARCH_URL: http://elasticsearch:9200
       ELASTICSEARCH_HOSTS: http://elasticsearch:9200

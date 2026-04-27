@@ -1,0 +1,53 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Relatórios
+relatorios
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Data and Results
+malware/resultados/
+pentesting/reports/
+*.tar.gz
+*.tar
+*.zip
+
+# System
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# Logs
+*.log
+logs/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg
+
+# Node
+node_modules/
+npm-debug.log
+
+# Backup
+*.bak
+*.backup
+.backup/

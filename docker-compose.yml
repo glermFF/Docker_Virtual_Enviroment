@@ -1,0 +1,177 @@
+# Docker Compose Master - Integração centralizada
+# Este arquivo orquestra todos os módulos do laboratório de segurança
+
+version: '3.9'
+
+# Importar serviços dos submódulos
+services:
+  # === AUDITORIA ===
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.5.2
+    container_name: es01
+    environment:
+      - node.name=es01
+      - cluster.name=es-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata1:/usr/share/elasticsearch/data
+    networks:
+      - esnet
+      - lab-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    profiles:
+      - audit
+      - all
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.5.2
+    container_name: kibana-system
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    networks:
+      - esnet
+      - lab-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5601/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    profiles:
+      - audit
+      - all
+
+  # === VPS (DVWA Lab) ===
+  dvwa-db:
+    image: mariadb:10.11
+    container_name: dvwa-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: dvwa
+      MYSQL_USER: dvwa
+      MYSQL_PASSWORD: dvwa
+    command: --skip-name-resolve --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - dvwa_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+    networks:
+      - vps-net
+      - lab-net
+    profiles:
+      - vps
+      - vulnerable
+      - all
+
+  vps-target:
+    build:
+      context: ./vps
+      dockerfile: server_machine.dockerfile
+    container_name: vps-target
+    restart: unless-stopped
+    depends_on:
+      dvwa-db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:80"
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    networks:
+      - vps-net
+      - lab-net
+    profiles:
+      - vps
+      - vulnerable
+      - all
+
+  # === MALWARE ANALYZER ===
+  malware-analyzer:
+    build:
+      context: ./malware
+      dockerfile: dockerfile
+    container_name: malware-analyzer
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ${HOME}/amostras:/amostras:ro
+      - ./malware/resultados:/analysis/resultados:rw
+    command: ["/home/analyze/analyze.sh", "/amostras"]
+    networks:
+      - malware_net
+    healthcheck:
+      test: ["CMD", "test", "-d", "/analysis/resultados"]
+      interval: 60s
+      timeout: 10s
+      retries: 2
+      start_period: 10s
+    profiles:
+      - malware
+      - all
+
+  # === PENTESTING ===
+  pentest-node:
+    build:
+      context: ./pentesting
+      dockerfile: pentest.dockerfile
+    container_name: pentest-node
+    stdin_open: true
+    tty: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./pentesting/reports:/pentest/reports:rw
+    networks:
+      - lab-net
+    environment:
+      - PENTEST_TARGET=vps-target
+    profiles:
+      - pentest
+      - all
+
+volumes:
+  esdata1:
+    driver: local
+  dvwa_db_data:
+    driver: local
+
+networks:
+  esnet:
+    driver: bridge
+  vps-net:
+    driver: bridge
+  lab-net:
+    driver: bridge
+  malware_net:
+    driver: bridge
+    internal: true
