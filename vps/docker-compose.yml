@@ -40,6 +40,12 @@ services:
     networks:
       - vps-net
       - lab-net
+    healthcheck:
+      test: ["CMD-SHELL", "php -r 'exit(@file_get_contents(\"http://localhost/login.php\") ? 0 : 1);'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
     profiles: ["vps", "vulnerable"]
 
 networks:

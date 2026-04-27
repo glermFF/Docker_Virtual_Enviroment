@@ -104,6 +104,12 @@ services:
     networks:
       - vps-net
       - lab-net
+    healthcheck:
+      test: ["CMD-SHELL", "php -r 'exit(@file_get_contents(\"http://localhost/login.php\") ? 0 : 1);'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
     profiles:
       - vps
       - vulnerable
@@ -157,6 +163,33 @@ services:
       - PENTEST_TARGET=vps-target
     profiles:
       - pentest
+      - all
+
+  # === TRAFFIC HOST ===
+  traffic-host:
+    build:
+      context: ./traffic-host
+      dockerfile: traffic_host.dockerfile
+    container_name: traffic-host
+    depends_on:
+      vps-target:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
+    environment:
+      MODE: ${TRAFFIC_MODE:-normal}
+      TARGET_URL: ${TRAFFIC_TARGET_URL:-http://vps-target/login.php}
+      AUDIT_URL: ${TRAFFIC_AUDIT_URL:-http://kibana:5601/api/status}
+      DURATION: ${TRAFFIC_DURATION:-180}
+      RPS: ${TRAFFIC_RPS:-5}
+      BURST_SIZE: ${TRAFFIC_BURST_SIZE:-10}
+      OUTPUT_DIR: /traffic-host/logs
+    volumes:
+      - ./relatorios/traffic-host:/traffic-host/logs:rw
+    networks:
+      - lab-net
+    profiles:
+      - traffic
       - all
 
 volumes:
